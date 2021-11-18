@@ -1,1 +1,1 @@
-module.exports = require('./lib/MailerModule');
+export { default } from './lib/MailerModule.js';

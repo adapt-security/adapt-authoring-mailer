@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "description": "Basic mailer for the Adapt authoring tool",
   "homepage": "https://github.com/adapt-security/adapt-authoring-mailer",
+  "license": "GPL-3.0",
+  "type": "module",
   "main": "index.js",
+  "repository": "adaptlearning/adapt-authoring-mailer",
   "dependencies": {
     "nodemailer": "^6.4.6"
   },
