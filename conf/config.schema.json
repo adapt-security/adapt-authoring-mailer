@@ -10,6 +10,10 @@
         "isPublic": true
       }
     },
+    "transport": {
+      "description": "Mail transport to use",
+      "type": "string"
+    },
     "connectionUrl": {
       "description": "Connection URL for the SMTP service",
       "type": "string",
