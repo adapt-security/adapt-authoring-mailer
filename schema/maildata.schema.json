@@ -5,13 +5,11 @@
   "properties": {
     "to": {
       "description": "Recipient email address",
-      "type": "string",
-      "format": "email"
+      "type": "string"
     },
     "from": {
       "description": "Sender email address",
-      "type": "string",
-      "format": "email"
+      "type": "string"
     },
     "subject": {
       "description": "Email subject",
