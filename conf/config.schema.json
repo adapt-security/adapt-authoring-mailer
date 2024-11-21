@@ -28,10 +28,19 @@
     "properties": { 
       "isEnabled": { "const": true },
       "connectionUrl": { "type": "string" },
-      "defaultSenderAddress": { "type": "string" }
+      "defaultSenderAddress": { "type": "string" },
+      "transport": { "type": "string" }
     } 
   },
-  "then": { 
-    "required": ["connectionUrl", "defaultSenderAddress"] 
+  "then": {
+    "required": ["transport"],
+    "if": { 
+      "properties": { 
+        "transport": { "const": "smtp" }
+      } 
+    },
+    "then": { 
+      "required": ["connectionUrl", "defaultSenderAddress"]
+    } 
   }
 }
