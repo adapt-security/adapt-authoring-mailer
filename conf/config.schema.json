@@ -36,7 +36,9 @@
     "required": ["transport"],
     "if": { 
       "properties": { 
-        "transport": { "const": "smtp" }
+        "transport": { "const": "smtp" },
+        "connectionUrl": { "type": "string" },
+        "defaultSenderAddress": { "type": "string" }
       } 
     },
     "then": { 
