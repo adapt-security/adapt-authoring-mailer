@@ -1,6 +1,6 @@
 // see: https://flaviocopes.com/how-to-validate-email-address-javascript/
 const data = {
-  "validEmails": [
+  validEmails: [
     'something@something.com',
     'something@something.name',
     'something@something.name.com',
@@ -16,7 +16,7 @@ const data = {
     '%@com.com',
     "!#$%&'*+/=?^_`{|}~.-@com.com",
     'someone@do-ma-in.com',
-    '\"testblah\"@example.com',
+    '"testblah"@example.com',
     'a@b.b',
     'simple@example.com',
     'very.common@example.com',
@@ -27,13 +27,13 @@ const data = {
     'x@example.com',
     'example-indeed@strange-example.com',
     '#!$%&\'*+-/=?^_`{}|~@example.org',
-    '"()<>[]:,;@\\\"!#$%&\'-/=?^_`{}| ~.a"@example.org',
+    '"()<>[]:,;@\\"!#$%&\'-/=?^_`{}| ~.a"@example.org',
     'example@s.solutions',
     '" "@example.org',
     'あいうえお@a.long.domain.example.university',
     'customer/department@example.com'
   ],
-  "invalidEmails": [
+  invalidEmails: [
     'somebody@example',
     'somebody.example',
     '.wooly@example.com',
@@ -51,7 +51,7 @@ const data = {
     'a space@example.com',
     'something@ex..ample.com',
     'a\b@c',
-    '\"\"test\blah\"\"@example.com',
+    '""test\blah""@example.com',
     'someone@somewhere.com@',
     'someone@somewhere.com@somewhere.com',
     'someone@somewhere_com',
@@ -66,23 +66,23 @@ const data = {
     'somebody@-.com',
     'Abc.example.com',
     'A@b@c@example.com',
-    'a"b(c)d,e:f;g<h>i[j\k]l@example.com',
+    'a"b(c)d,e:f;g<h>i[jk]l@example.com',
     'just"not"right@example.com ',
-    'this is"not\allowed@example.com',
-    'this\ still\"not\\allowed@example.com',
+    'this is"notallowed@example.com',
+    'this still"not\\allowed@example.com',
     'john..doe@example.com ',
     'john.doe@example..com '
   ],
-  "validSmtpConnectionUrls": [
-    "smtps://username:password@smtp.example.com",
-    "smtp://username:password@smtp.example.com",
-    "smtp://whitney2@ethereal.email:f2e1ZjCkNxvpN5PaRK@smtp.ethereal.email"
+  validSmtpConnectionUrls: [
+    'smtps://username:password@smtp.example.com',
+    'smtp://username:password@smtp.example.com',
+    'smtp://whitney2@ethereal.email:f2e1ZjCkNxvpN5PaRK@smtp.ethereal.email'
   ],
-  "invalidSmtpConnectionUrls": [
-    "smt://username:password@smtp.example.com",
-    "smtp://username:password#smtp.example.com"
+  invalidSmtpConnectionUrls: [
+    'smt://username:password@smtp.example.com',
+    'smtp://username:password#smtp.example.com'
   ],
-  "validPorts" : [ 0, 100, 587, "587", 465, "465", 8000, 10000, 65535, "65535" ],
-  "invalidPorts" : [ -1, 65536, "65536", "abc", "x123"]
+  validPorts: [0, 100, 587, '587', 465, '465', 8000, 10000, 65535, '65535'],
+  invalidPorts: [-1, 65536, '65536', 'abc', 'x123']
 }
-module.exports = data;
+module.exports = data
