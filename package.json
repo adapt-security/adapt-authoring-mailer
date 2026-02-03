@@ -1,6 +1,6 @@
 {
   "name": "adapt-authoring-mailer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Basic mailer for the Adapt authoring tool",
   "homepage": "https://github.com/adapt-security/adapt-authoring-mailer",
   "license": "GPL-3.0",
