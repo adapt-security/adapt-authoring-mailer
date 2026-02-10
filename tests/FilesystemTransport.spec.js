@@ -15,7 +15,7 @@ describe('FilesystemTransport', () => {
   })
 
   describe('module structure', () => {
-    it('should have valid JavaScript syntax', () => {
+    it('should contain FilesystemTransport class definition', () => {
       assert.ok(content.length > 0)
       assert.ok(content.includes('class FilesystemTransport'))
     })
