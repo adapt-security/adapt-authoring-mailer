@@ -7,6 +7,9 @@
   "type": "module",
   "main": "index.js",
   "repository": "github:adapt-security/adapt-authoring-mailer",
+  "scripts": {
+    "test": "node --test tests/*.spec.js"
+  },
   "dependencies": {
     "nodemailer": "^7.0.6"
   },
