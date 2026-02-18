@@ -9,9 +9,9 @@ describe('Mailer module', function () {
 
     const { user, pass, smtp } = await nodemailer.createTestAccount()
 
-    App.instance.config.set(`${this.mailer.name}.enable`, true)
-    App.instance.config.set(`${this.mailer.name}.useConnectionUrl`, true)
-    App.instance.config.set(`${this.mailer.name}.connectionUrl`, `smtp://${user}:${pass}@${smtp.host}:${smtp.port}`)
+    App.instance.config._config[`${this.mailer.name}.enable`] = true
+    App.instance.config._config[`${this.mailer.name}.useConnectionUrl`] = true
+    App.instance.config._config[`${this.mailer.name}.connectionUrl`] = `smtp://${user}:${pass}@${smtp.host}:${smtp.port}`
 
     await this.mailer.init()
   })
