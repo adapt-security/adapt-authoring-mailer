@@ -25,6 +25,7 @@ const configValues = {
   defaultSenderAddress: 'no-reply@test.com'
 }
 
+const logCalls = []
 const mockApp = {
   config: { get: mock.fn((key) => configValues[key.split('.').pop()]) },
   waitForModule: mock.fn(async (...names) => {
@@ -39,6 +40,12 @@ const mockApp = {
   },
   dependencyloader: {
     moduleLoadedHook: { tap: () => {}, untap: () => {} }
+  },
+  logger: {
+    name: 'logger',
+    log: (level, moduleName, ...args) => {
+      logCalls.push({ level, moduleName, args })
+    }
   }
 }
 
@@ -56,6 +63,10 @@ describe('MailerModule', () => {
   let mailer
 
   beforeEach(async () => {
+    logCalls.length = 0
+    mockJsonSchema.getSchema = mock.fn(async () => ({
+      validate: mock.fn(async () => {})
+    }))
     mailer = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: '/test' })
     await mailer.onReady()
   })
@@ -69,7 +80,7 @@ describe('MailerModule', () => {
       assert.equal(mailer.connectionUrl, 'smtp://localhost')
     })
 
-    it('should initialise empty transports object', () => {
+    it('should initialise an empty transports object before registering', () => {
       assert.ok(typeof mailer.transports === 'object')
     })
 
@@ -96,6 +107,17 @@ describe('MailerModule', () => {
 
     it('should register transports when enabled', () => {
       assert.ok(Object.keys(mailer.transports).length > 0)
+      assert.ok(mailer.transports.filesystem)
+      assert.ok(mailer.transports.smtp)
+    })
+
+    it('should not register transports when disabled', async () => {
+      const original = configValues.isEnabled
+      configValues.isEnabled = false
+      const disabled = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: '/test' })
+      await disabled.onReady()
+      assert.deepEqual(disabled.transports, {})
+      configValues.isEnabled = original
     })
   })
 
@@ -106,6 +128,31 @@ describe('MailerModule', () => {
       }
       mailer.registerTransport(TestTransport)
       assert.ok(mailer.transports['test-transport'])
+    })
+
+    it('should log an error when constructor throws', () => {
+      logCalls.length = 0
+      class BadTransport {
+        constructor () { throw new Error('broken') }
+      }
+      assert.throws(() => mailer.registerTransport(BadTransport), { name: 'TypeError' })
+      assert.ok(logCalls.some(c => c.level === 'error' && c.args[0].includes('Failed to create transport')))
+    })
+
+    it('should log an error when transport is not an AbstractMailTransport instance', () => {
+      logCalls.length = 0
+      class NotATransport {
+        name = 'fake'
+      }
+      mailer.registerTransport(NotATransport)
+      assert.ok(logCalls.some(c => c.level === 'error' && c.args[0].includes('not an instance of AbstractMailTransport')))
+    })
+
+    it('should log an error when transport does not define a name', () => {
+      logCalls.length = 0
+      class NoNameTransport extends AbstractMailTransport {}
+      mailer.registerTransport(NoNameTransport)
+      assert.ok(logCalls.some(c => c.level === 'error' && c.args[0].includes('does not define a name')))
     })
   })
 
@@ -123,29 +170,103 @@ describe('MailerModule', () => {
     })
   })
 
+  describe('initTransports()', () => {
+    it('should call test() on the configured transport and log success', async () => {
+      logCalls.length = 0
+      const testFn = mock.fn(async () => {})
+      mailer.transports.smtp = { name: 'smtp', test: testFn }
+      await mailer.initTransports()
+      assert.equal(testFn.mock.calls.length, 1)
+      assert.ok(logCalls.some(c => c.level === 'info' && c.args[0].includes('connection verified successfully')))
+    })
+
+    it('should log a warning when transport test fails', async () => {
+      logCalls.length = 0
+      mailer.transports.smtp = {
+        name: 'smtp',
+        test: mock.fn(async () => { throw new Error('connection refused') })
+      }
+      await mailer.initTransports()
+      assert.ok(logCalls.some(c => c.level === 'warn' && c.args[0].includes('connection test failed')))
+    })
+  })
+
   describe('send()', () => {
     it('should set default from address if not provided', async () => {
       const sentData = {}
-      const originalTransport = mailer.transports.smtp
       mailer.transports.smtp = {
         name: 'smtp',
         send: mock.fn(async (data) => { Object.assign(sentData, data) })
       }
       await mailer.send({ to: 'user@test.com', subject: 'Hi' })
       assert.equal(sentData.from, 'no-reply@test.com')
-      mailer.transports.smtp = originalTransport
     })
 
     it('should not override an explicit from address', async () => {
       const sentData = {}
-      const originalTransport = mailer.transports.smtp
       mailer.transports.smtp = {
         name: 'smtp',
         send: mock.fn(async (data) => { Object.assign(sentData, data) })
       }
       await mailer.send({ to: 'user@test.com', from: 'custom@test.com', subject: 'Hi' })
       assert.equal(sentData.from, 'custom@test.com')
-      mailer.transports.smtp = originalTransport
+    })
+
+    it('should validate data against the maildata schema', async () => {
+      const validateFn = mock.fn(async () => {})
+      mockJsonSchema.getSchema = mock.fn(async (name) => {
+        assert.equal(name, 'maildata')
+        return { validate: validateFn }
+      })
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => {})
+      }
+      await mailer.send({ to: 'user@test.com', subject: 'Hi' })
+      assert.equal(validateFn.mock.calls.length, 1)
+    })
+
+    it('should call send on the configured transport', async () => {
+      const sendFn = mock.fn(async () => {})
+      mailer.transports.smtp = { name: 'smtp', send: sendFn }
+      await mailer.send({ to: 'user@test.com', subject: 'Hi' })
+      assert.equal(sendFn.mock.calls.length, 1)
+      assert.equal(sendFn.mock.calls[0].arguments[0].to, 'user@test.com')
+    })
+
+    it('should log success after sending', async () => {
+      logCalls.length = 0
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => {})
+      }
+      await mailer.send({ to: 'user@test.com', subject: 'Hi' })
+      assert.ok(logCalls.some(c => c.level === 'info' && c.args[0].includes('email sent successfully')))
+    })
+
+    it('should throw MAIL_SEND_FAILED when transport.send fails', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => { throw new Error('transport error') })
+      }
+      await assert.rejects(
+        () => mailer.send({ to: 'user@test.com', subject: 'Hi' }),
+        { message: 'Mail send failed' }
+      )
+    })
+
+    it('should throw MAIL_SEND_FAILED when schema validation fails', async () => {
+      mockJsonSchema.getSchema = mock.fn(async () => ({
+        validate: mock.fn(async () => { throw new Error('validation failed') })
+      }))
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => {})
+      }
+      await assert.rejects(
+        () => mailer.send({ to: 'user@test.com', subject: 'Hi' }),
+        { message: 'Mail send failed' }
+      )
     })
 
     it('should log a warning and return when mailer is disabled in non-strict mode', async () => {
@@ -166,6 +287,42 @@ describe('MailerModule', () => {
       mailer.isEnabled = false
       await assert.rejects(() => mailer.testEmailHandler({}, {}, () => {}))
       mailer.isEnabled = true
+    })
+
+    it('should send a test email with the correct content when enabled', async () => {
+      const sendFn = mock.fn(async () => {})
+      mailer.transports.smtp = { name: 'smtp', send: sendFn }
+      const mockRes = { status: mock.fn(() => ({ end: mock.fn() })) }
+      const req = { body: { email: 'recipient@test.com' } }
+      await mailer.testEmailHandler(req, mockRes, () => {})
+      assert.equal(sendFn.mock.calls.length, 1)
+      const sentData = sendFn.mock.calls[0].arguments[0]
+      assert.equal(sentData.to, 'recipient@test.com')
+      assert.equal(sentData.subject, 'Adapt authoring tool: email test')
+      assert.ok(sentData.text.includes('http://localhost'))
+    })
+
+    it('should respond with 200 on success', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => {})
+      }
+      const endFn = mock.fn()
+      const mockRes = { status: mock.fn(() => ({ end: endFn })) }
+      await mailer.testEmailHandler({ body: { email: 'a@b.com' } }, mockRes, () => {})
+      assert.equal(mockRes.status.mock.calls[0].arguments[0], 200)
+      assert.equal(endFn.mock.calls.length, 1)
+    })
+
+    it('should pass errors to next() when send fails', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => { throw new Error('send failed') })
+      }
+      const nextFn = mock.fn()
+      const mockRes = { status: mock.fn(() => ({ end: mock.fn() })) }
+      await mailer.testEmailHandler({ body: { email: 'a@b.com' } }, mockRes, nextFn)
+      assert.equal(nextFn.mock.calls.length, 1)
     })
   })
 })
