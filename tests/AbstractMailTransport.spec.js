@@ -1,39 +1,64 @@
-import { describe, it, before } from 'node:test'
+import { describe, it, mock, before } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const mockApp = {
+  config: { get: mock.fn((key) => `mock-${key}`) }
+}
+
+mock.module('adapt-authoring-core', {
+  namedExports: { App: { instance: mockApp } }
+})
+
+const { default: AbstractMailTransport } = await import('../lib/AbstractMailTransport.js')
 
 describe('AbstractMailTransport', () => {
-  let content
+  describe('getConfig()', () => {
+    before(() => mockApp.config.get.mock.resetCalls())
 
-  before(() => {
-    const filePath = join(__dirname, '../lib/AbstractMailTransport.js')
-    content = readFileSync(filePath, 'utf-8')
+    it('should retrieve config values using the mailer namespace', () => {
+      const transport = new AbstractMailTransport()
+      const result = transport.getConfig('connectionUrl')
+      assert.equal(result, 'mock-adapt-authoring-mailer.connectionUrl')
+    })
+
+    it('should pass the full namespaced key to App.instance.config.get', () => {
+      mockApp.config.get.mock.resetCalls()
+      const transport = new AbstractMailTransport()
+      transport.getConfig('isEnabled')
+      assert.equal(mockApp.config.get.mock.calls[0].arguments[0], 'adapt-authoring-mailer.isEnabled')
+    })
   })
 
-  describe('module structure', () => {
-    it('should contain AbstractMailTransport class definition', () => {
-      assert.ok(content.length > 0)
-      assert.ok(content.includes('class AbstractMailTransport'))
+  describe('send()', () => {
+    it('should return a promise', () => {
+      const transport = new AbstractMailTransport()
+      const result = transport.send({ to: 'test@test.com' })
+      assert.ok(result instanceof Promise)
     })
 
-    it('should export default class', () => {
-      assert.ok(content.includes('export default AbstractMailTransport'))
+    it('should resolve without error by default', async () => {
+      const transport = new AbstractMailTransport()
+      await assert.doesNotReject(() => transport.send({ to: 'test@test.com' }))
+    })
+  })
+
+  describe('test()', () => {
+    it('should return a promise', () => {
+      const transport = new AbstractMailTransport()
+      const result = transport.test()
+      assert.ok(result instanceof Promise)
     })
 
-    it('should define send method', () => {
-      assert.ok(content.includes('async send'))
+    it('should resolve without error by default', async () => {
+      const transport = new AbstractMailTransport()
+      await assert.doesNotReject(() => transport.test())
     })
+  })
 
-    it('should define test method', () => {
-      assert.ok(content.includes('async test'))
-    })
-
-    it('should define getConfig method', () => {
-      assert.ok(content.includes('getConfig'))
+  describe('name', () => {
+    it('should be undefined by default', () => {
+      const transport = new AbstractMailTransport()
+      assert.equal(transport.name, undefined)
     })
   })
 })
