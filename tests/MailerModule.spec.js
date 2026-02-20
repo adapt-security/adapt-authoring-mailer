@@ -1,4 +1,4 @@
-import { describe, it, mock, beforeEach, todo } from 'node:test'
+import { describe, it, mock, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 const mockRouter = {
@@ -164,9 +164,7 @@ describe('MailerModule', () => {
       class BadTransport {
         constructor () { throw new Error('broken') }
       }
-      // BUG: registerTransport does not return early after constructor failure,
-      // causing a TypeError when accessing t.name on undefined t
-      assert.throws(() => mailer.registerTransport(BadTransport), { name: 'TypeError' })
+      mailer.registerTransport(BadTransport)
       assert.ok(logCalls.some(c => c.level === 'error' && c.args[0].includes('Failed to create transport')))
     })
 
@@ -186,31 +184,34 @@ describe('MailerModule', () => {
       assert.ok(logCalls.some(c => c.level === 'error' && c.args[0].includes('does not define a name')))
     })
 
-    it('should still add the transport to the map even if it is not a valid type', () => {
+    it('should not add invalid transport to the map', () => {
       class NotATransport {
         name = 'invalid-type'
       }
       mailer.registerTransport(NotATransport)
-      // BUG: transport is still registered even though it fails instance check
-      assert.ok(mailer.transports['invalid-type'])
+      assert.equal(mailer.transports['invalid-type'], undefined)
     })
 
-    // TODO: BUG - registerTransport does not return early after constructor failure.
-    // When the constructor throws, `t` is undefined. The code then accesses
-    // `t instanceof AbstractMailTransport` (which is false for undefined) and
-    // `t.name` which throws a TypeError. The method should return after the catch block.
-    todo('should gracefully handle constructor failure without throwing TypeError')
+    it('should gracefully handle constructor failure without throwing TypeError', () => {
+      class BadTransport {
+        constructor () { throw new Error('broken') }
+      }
+      assert.doesNotThrow(() => mailer.registerTransport(BadTransport))
+    })
 
-    // TODO: BUG - registerTransport still adds transport to transports map even when
-    // instanceof check fails. A transport that is not an AbstractMailTransport instance
-    // is still stored and could be used to send mail. The method should return early
-    // or remove the transport when validation fails.
-    todo('should not register transport that fails instanceof check')
+    it('should not register transport that fails instanceof check', () => {
+      class NotATransport {
+        name = 'not-abstract'
+      }
+      mailer.registerTransport(NotATransport)
+      assert.equal(mailer.transports['not-abstract'], undefined)
+    })
 
-    // TODO: BUG - registerTransport still registers a transport with no name under
-    // `undefined` key. The method should return early or remove the transport when
-    // name validation fails.
-    todo('should not register transport with no name')
+    it('should not register transport with no name', () => {
+      class NoNameTransport extends AbstractMailTransport {}
+      mailer.registerTransport(NoNameTransport)
+      assert.equal(mailer.transports[undefined], undefined)
+    })
   })
 
   describe('getTransport()', () => {
