@@ -25,22 +25,9 @@ const configValues = {
   defaultSenderAddress: 'no-reply@test.com'
 }
 
-const mockApp = {
-  config: { get: mock.fn((key) => configValues[key.split('.').pop()]) },
-  waitForModule: mock.fn(async (...names) => {
-    const map = { auth: mockAuth, server: mockServer, jsonschema: mockJsonSchema }
-    const results = names.map(n => map[n])
-    return results.length > 1 ? results : results[0]
-  }),
-  onReady: mock.fn(async () => {}),
-  errors: {
-    MAIL_NOT_ENABLED: Object.assign(new Error('Mail not enabled'), { setData: (d) => d }),
-    MAIL_SEND_FAILED: { setData: (d) => Object.assign(new Error('Mail send failed'), d) }
-  },
-  dependencyloader: {
-    moduleLoadedHook: { tap: () => {}, untap: () => {} }
-  }
-}
+    App.instance.config._config[`${this.mailer.name}.enable`] = true
+    App.instance.config._config[`${this.mailer.name}.useConnectionUrl`] = true
+    App.instance.config._config[`${this.mailer.name}.connectionUrl`] = `smtp://${user}:${pass}@${smtp.host}:${smtp.port}`
 
 mock.module('adapt-authoring-core', {
   namedExports: {
