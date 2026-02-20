@@ -85,4 +85,5 @@ const data = {
   validPorts: [0, 100, 587, '587', 465, '465', 8000, 10000, 65535, '65535'],
   invalidPorts: [-1, 65536, '65536', 'abc', 'x123']
 }
-module.exports = data
+
+export default data
