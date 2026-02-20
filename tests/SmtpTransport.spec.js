@@ -16,10 +16,12 @@ const mockTransporter = {
   verify: mock.fn(async () => true)
 }
 
+const nodemailerMock = {
+  createTransport: mock.fn(() => mockTransporter)
+}
+
 mock.module('nodemailer', {
-  defaultExport: {
-    createTransport: mock.fn(() => mockTransporter)
-  }
+  defaultExport: nodemailerMock
 })
 
 const { default: SmtpTransport } = await import('../lib/transports/SmtpTransport.js')
@@ -40,9 +42,32 @@ describe('SmtpTransport', () => {
 
   describe('createTransport()', () => {
     it('should create a nodemailer transport using the connectionUrl config', () => {
+      nodemailerMock.createTransport.mock.resetCalls()
       const transport = new SmtpTransport()
       transport.createTransport()
-      assert.equal(mockTransporter, transport.createTransport())
+      assert.equal(nodemailerMock.createTransport.mock.calls.length, 1)
+    })
+
+    it('should pass the connectionUrl config to nodemailer', () => {
+      nodemailerMock.createTransport.mock.resetCalls()
+      const transport = new SmtpTransport()
+      transport.createTransport()
+      const calledWith = nodemailerMock.createTransport.mock.calls[0].arguments[0]
+      assert.equal(calledWith, 'mock-adapt-authoring-mailer.connectionUrl')
+    })
+
+    it('should return the nodemailer transporter', () => {
+      const transport = new SmtpTransport()
+      const result = transport.createTransport()
+      assert.equal(result, mockTransporter)
+    })
+
+    it('should create a new transport on each call', () => {
+      nodemailerMock.createTransport.mock.resetCalls()
+      const transport = new SmtpTransport()
+      transport.createTransport()
+      transport.createTransport()
+      assert.equal(nodemailerMock.createTransport.mock.calls.length, 2)
     })
   })
 
@@ -61,11 +86,29 @@ describe('SmtpTransport', () => {
       const result = await transport.send({ to: 'test@test.com' })
       assert.deepEqual(result, { messageId: 'test-id' })
     })
+
+    it('should propagate sendMail errors', async () => {
+      mockTransporter.sendMail.mock.mockImplementation(async () => {
+        throw new Error('SMTP error')
+      })
+      const transport = new SmtpTransport()
+      await assert.rejects(() => transport.send({ to: 'a@b.com' }), { message: 'SMTP error' })
+      mockTransporter.sendMail.mock.mockImplementation(async (data) => ({ messageId: 'test-id' }))
+    })
+
+    it('should pass the complete data object to sendMail', async () => {
+      mockTransporter.sendMail.mock.resetCalls()
+      const transport = new SmtpTransport()
+      const data = { to: 'a@b.com', from: 'c@d.com', subject: 'Hi', text: 'Body', html: '<b>Body</b>' }
+      await transport.send(data)
+      assert.deepEqual(mockTransporter.sendMail.mock.calls[0].arguments[0], data)
+    })
   })
 
   describe('test()', () => {
     it('should call verify on the nodemailer transport', async () => {
       mockTransporter.verify.mock.resetCalls()
+      mockTransporter.verify.mock.mockImplementation(async () => true)
       const transport = new SmtpTransport()
       await transport.test()
       assert.equal(mockTransporter.verify.mock.calls.length, 1)
@@ -78,6 +121,12 @@ describe('SmtpTransport', () => {
       const transport = new SmtpTransport()
       await assert.rejects(() => transport.test(), { message: 'connection refused' })
       mockTransporter.verify.mock.mockImplementation(async () => true)
+    })
+
+    it('should resolve when verify succeeds', async () => {
+      mockTransporter.verify.mock.mockImplementation(async () => true)
+      const transport = new SmtpTransport()
+      await assert.doesNotReject(() => transport.test())
     })
   })
 })
