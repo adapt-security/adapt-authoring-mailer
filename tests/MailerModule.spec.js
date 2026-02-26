@@ -51,7 +51,7 @@ const mockApp = {
 
 mock.module('adapt-authoring-core', {
   namedExports: {
-    AbstractModule: (await import('adapt-authoring-core')).AbstractModule,
+    ...await import('adapt-authoring-core'),
     App: { instance: mockApp }
   }
 })
