@@ -1,0 +1,17 @@
+{
+  "root": "mailer",
+  "routes": [
+    {
+      "route": "/test",
+      "internal": true,
+      "handlers": { "post": "testEmailHandler" },
+      "permissions": { "post": null },
+      "meta": {
+        "post": {
+          "summary": "Send test email",
+          "responses": { "200": {} }
+        }
+      }
+    }
+  ]
+}

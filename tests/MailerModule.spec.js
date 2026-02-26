@@ -1,5 +1,9 @@
 import { describe, it, mock, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+const moduleRootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 const mockRouter = {
   path: '/api/mailer',
@@ -51,7 +55,7 @@ const mockApp = {
 
 mock.module('adapt-authoring-core', {
   namedExports: {
-    AbstractModule: (await import('adapt-authoring-core')).AbstractModule,
+    ...await import('adapt-authoring-core'),
     App: { instance: mockApp }
   }
 })
@@ -67,7 +71,7 @@ describe('MailerModule', () => {
     mockJsonSchema.getSchema = mock.fn(async () => ({
       validate: mock.fn(async () => {})
     }))
-    mailer = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: '/test' })
+    mailer = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: moduleRootDir })
     await mailer.onReady()
   })
 
@@ -125,7 +129,7 @@ describe('MailerModule', () => {
     it('should not register transports when disabled', async () => {
       const original = configValues.isEnabled
       configValues.isEnabled = false
-      const disabled = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: '/test' })
+      const disabled = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: moduleRootDir })
       await disabled.onReady()
       assert.deepEqual(disabled.transports, {})
       configValues.isEnabled = original
@@ -135,7 +139,7 @@ describe('MailerModule', () => {
       const original = configValues.isEnabled
       configValues.isEnabled = false
       mockRouter.addRoute.mock.resetCalls()
-      const disabled = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: '/test' })
+      const disabled = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: moduleRootDir })
       await disabled.onReady()
       assert.ok(mockRouter.addRoute.mock.calls.length > 0)
       configValues.isEnabled = original
