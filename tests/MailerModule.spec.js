@@ -18,7 +18,7 @@ const mockServer = {
 }
 const mockJsonSchema = {
   getSchema: mock.fn(async () => ({
-    validate: mock.fn(async () => {})
+    validate: mock.fn(() => {})
   }))
 }
 
@@ -69,7 +69,7 @@ describe('MailerModule', () => {
   beforeEach(async () => {
     logCalls.length = 0
     mockJsonSchema.getSchema = mock.fn(async () => ({
-      validate: mock.fn(async () => {})
+      validate: mock.fn(() => {})
     }))
     mailer = new MailerModule(mockApp, { name: 'adapt-authoring-mailer', rootDir: moduleRootDir })
     await mailer.onReady()
@@ -310,7 +310,7 @@ describe('MailerModule', () => {
     })
 
     it('should validate data against the maildata schema', async () => {
-      const validateFn = mock.fn(async () => {})
+      const validateFn = mock.fn(() => {})
       mockJsonSchema.getSchema = mock.fn(async (name) => {
         assert.equal(name, 'maildata')
         return { validate: validateFn }
@@ -368,7 +368,7 @@ describe('MailerModule', () => {
 
     it('should throw MAIL_SEND_FAILED when schema validation fails', async () => {
       mockJsonSchema.getSchema = mock.fn(async () => ({
-        validate: mock.fn(async () => { throw new Error('validation failed') })
+        validate: mock.fn(() => { throw new Error('validation failed') })
       }))
       mailer.transports.smtp = {
         name: 'smtp',
