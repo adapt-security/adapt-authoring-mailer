@@ -3,8 +3,12 @@
     "description": "Email functionality is not enabled",
     "statusCode": 500
   },
+  "MAIL_CONNECTION_FAILED": {
+    "description": "Could not connect to the mail server",
+    "statusCode": 502
+  },
   "MAIL_SEND_FAILED": {
-    "description": "Failed to send error email",
+    "description": "Failed to send email",
     "statusCode": 500
   }
 }

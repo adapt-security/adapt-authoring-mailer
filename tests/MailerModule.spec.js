@@ -40,6 +40,7 @@ const mockApp = {
   onReady: mock.fn(async () => {}),
   errors: {
     MAIL_NOT_ENABLED: Object.assign(new Error('Mail not enabled'), { setData: (d) => d }),
+    MAIL_CONNECTION_FAILED: { setData: (d) => Object.assign(new Error('Mail connection failed'), d) },
     MAIL_SEND_FAILED: { setData: (d) => Object.assign(new Error('Mail send failed'), d) }
   },
   dependencyloader: {
@@ -362,6 +363,43 @@ describe('MailerModule', () => {
         assert.fail('should have thrown')
       } catch (e) {
         assert.equal(e.email, 'user@test.com')
+        assert.ok(e.error instanceof Error)
+      }
+    })
+
+    it('should throw MAIL_CONNECTION_FAILED when the transport errors with a connection code', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => { throw Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }) })
+      }
+      await assert.rejects(
+        () => mailer.send({ to: 'user@test.com', subject: 'Hi' }),
+        { message: 'Mail connection failed' }
+      )
+    })
+
+    it('should detect connection failures by message when no code is set', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => { throw new Error('getaddrinfo ENOTFOUND smtp.example.com') })
+      }
+      await assert.rejects(
+        () => mailer.send({ to: 'user@test.com', subject: 'Hi' }),
+        { message: 'Mail connection failed' }
+      )
+    })
+
+    it('should include the connectionUrl in MAIL_CONNECTION_FAILED data', async () => {
+      mailer.transports.smtp = {
+        name: 'smtp',
+        send: mock.fn(async () => { throw Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }) })
+      }
+      try {
+        await mailer.send({ to: 'user@test.com', subject: 'Hi' })
+        assert.fail('should have thrown')
+      } catch (e) {
+        assert.equal(e.email, 'user@test.com')
+        assert.equal(e.connectionUrl, 'smtp://localhost')
         assert.ok(e.error instanceof Error)
       }
     })
