@@ -22,6 +22,10 @@
     "defaultSenderAddress": {
       "description": "Default email address to use as the sender",
       "type": "string"
+    },
+    "supportEmail": {
+      "description": "Support contact address shown in the footer of templated emails",
+      "type": "string"
     }
   },
   "if": { 

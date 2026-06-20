@@ -22,6 +22,11 @@
     "html": {
       "description": "Email HTML content",
       "type": "string"
+    },
+    "attachments": {
+      "description": "Nodemailer attachments (e.g. CID-embedded images)",
+      "type": "array",
+      "items": { "type": "object" }
     }
   },
   "required": ["to", "from", "subject", "text"]

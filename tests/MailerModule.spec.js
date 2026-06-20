@@ -26,7 +26,12 @@ const configValues = {
   isEnabled: true,
   connectionUrl: 'smtp://localhost',
   transport: 'smtp',
-  defaultSenderAddress: 'no-reply@test.com'
+  defaultSenderAddress: 'no-reply@test.com',
+  appName: 'Adapt',
+  primaryColour: '#1ec0d9',
+  chromeColour: '#263944',
+  commitColour: '#00dd95',
+  supportEmail: 'help@test.com'
 }
 
 const logCalls = []
@@ -446,6 +451,44 @@ describe('MailerModule', () => {
       }
       await mailer.send(data)
       assert.equal(data.from, 'no-reply@test.com')
+    })
+  })
+
+  describe('sendTemplated()', () => {
+    const content = { emblem: 'key', title: 'Reset your password', body: 'Click below.', button: { label: 'Reset', url: 'https://x/reset' } }
+
+    it('renders the template into the html and sends via send()', async () => {
+      const sentData = {}
+      mailer.transports.smtp = { name: 'smtp', send: mock.fn(async (data) => { Object.assign(sentData, data) }) }
+      await mailer.sendTemplated({ to: 'user@test.com', subject: 'Reset', content })
+      assert.equal(sentData.to, 'user@test.com')
+      assert.ok(sentData.html.includes('Reset your password'))
+      assert.ok(sentData.html.includes('#1ec0d9')) // branding injected
+      assert.ok(sentData.text.includes('Reset your password'))
+    })
+
+    it('attaches the logo, plus the emblem when one is set', async () => {
+      const sentData = {}
+      mailer.transports.smtp = { name: 'smtp', send: mock.fn(async (data) => { Object.assign(sentData, data) }) }
+      await mailer.sendTemplated({ to: 'user@test.com', subject: 'Reset', content })
+      const cids = sentData.attachments.map(a => a.cid)
+      assert.deepEqual(cids, ['logo', 'emblem-key'])
+    })
+
+    it('attaches only the logo when no emblem is set', async () => {
+      const sentData = {}
+      mailer.transports.smtp = { name: 'smtp', send: mock.fn(async (data) => { Object.assign(sentData, data) }) }
+      await mailer.sendTemplated({ to: 'user@test.com', subject: 'Hi', content: { title: 'Hi', body: 'x' } })
+      assert.deepEqual(sentData.attachments.map(a => a.cid), ['logo'])
+    })
+
+    it('caches the template after the first read', async () => {
+      mailer.transports.smtp = { name: 'smtp', send: mock.fn(async () => {}) }
+      await mailer.sendTemplated({ to: 'a@b.com', subject: 'Hi', content: { title: 'Hi', body: 'x' } })
+      const first = mailer._emailTemplate
+      await mailer.sendTemplated({ to: 'a@b.com', subject: 'Hi', content: { title: 'Hi', body: 'x' } })
+      assert.equal(mailer._emailTemplate, first)
+      assert.ok(typeof first === 'string' && first.length > 0)
     })
   })
 
