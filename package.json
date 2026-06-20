@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "adapt-authoring-core": "^3.0.0",
+    "mustache": "^4.2.0",
     "nodemailer": "^8.0.1"
   },
   "peerDependencies": {
