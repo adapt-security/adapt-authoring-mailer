@@ -19,7 +19,7 @@ footer support contact for templated emails.
 
 ## Sending templated emails
 
-`sendTemplated()` renders a single branded HTML shell (`templates/email.html`) and sends it
+`sendTemplated()` renders a single branded HTML shell (`templates/default.html`) and sends it
 as a multipart text + HTML message. The mailer is content-agnostic — callers supply
 already-translated copy and the runtime values; branding (app name, theme colours) is read
 from config and the logo/emblem are CID-embedded.
