@@ -3,7 +3,10 @@
   "documentation": {
     "enable": true,
     "includes": {
-    "source": "lib/*"
-  }
+      "source": "lib/*"
+    },
+    "manualPages": {
+      "email.md": "development"
+    }
   }
 }
